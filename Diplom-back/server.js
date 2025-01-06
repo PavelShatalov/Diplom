@@ -6,46 +6,90 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Временное хранилище событий (массив в памяти)
 let events = [];
 
-// Получение всех событий
+// Получить все события
 app.get("/api/events", (req, res) => {
 	res.json(events);
 });
 
-// Добавление нового события
+// Создать событие
 app.post("/api/events", (req, res) => {
-	const { title, date, time, duration } = req.body;
-	const newEvent = { id: events.length + 1, title, date, time, duration };
+	const { title, startDate, endDate } = req.body;
+
+	if (!title || !startDate || !endDate) {
+		return res.status(400).json({ message: "Invalid event data" });
+	}
+
+	const start = new Date(startDate);
+	const end = new Date(endDate);
+
+	if (end <= start) {
+		return res
+			.status(400)
+			.json({ message: "endDate must be strictly after startDate" });
+	}
+
+	const duration = Math.round((end - start) / 60000);
+
+	const newEvent = {
+		id: events.length + 1,
+		title,
+		startDate,
+		endDate,
+		duration,
+	};
+
 	events.push(newEvent);
-	res.status(201).json(newEvent);
+	return res.status(201).json(newEvent);
 });
 
-// Обновление события
+// Обновить событие
 app.put("/api/events/:id", (req, res) => {
 	const { id } = req.params;
-	const { title, date, time, duration } = req.body;
+	const { title, startDate, endDate } = req.body;
 
-	const eventIndex = events.findIndex((event) => event.id === parseInt(id));
-	if (eventIndex === -1) {
+	const index = events.findIndex((e) => e.id === parseInt(id));
+	if (index === -1) {
 		return res.status(404).json({ message: "Event not found" });
 	}
 
-	events[eventIndex] = { ...events[eventIndex], title, date, time, duration };
-	res.json(events[eventIndex]);
+	if (!title || !startDate || !endDate) {
+		return res.status(400).json({ message: "Invalid event data" });
+	}
+
+	const start = new Date(startDate);
+	const end = new Date(endDate);
+
+	if (end <= start) {
+		return res
+			.status(400)
+			.json({ message: "endDate must be strictly after startDate" });
+	}
+
+	const duration = Math.round((end - start) / 60000);
+
+	events[index] = {
+		...events[index],
+		title,
+		startDate,
+		endDate,
+		duration,
+	};
+
+	res.json(events[index]);
 });
 
-// Удаление события
+// Удалить событие
 app.delete("/api/events/:id", (req, res) => {
 	const { id } = req.params;
-
-	const eventIndex = events.findIndex((event) => event.id === parseInt(id));
-	if (eventIndex === -1) {
+	const index = events.findIndex((e) => e.id === parseInt(id));
+	if (index === -1) {
 		return res.status(404).json({ message: "Event not found" });
 	}
-
-	const deletedEvent = events.splice(eventIndex, 1);
-	res.json(deletedEvent);
+	const deleted = events.splice(index, 1)[0];
+	res.json(deleted);
 });
 
 const PORT = 5000;
