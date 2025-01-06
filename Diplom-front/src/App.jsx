@@ -1,11 +1,13 @@
 import React from "react";
-import Calendar from "./components/CalendarIntegration/Calendar.jsx";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import Calendar from "./components/CalendarIntegration/Calendar";
 
 const App = () => {
 	return (
-		<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+		<DndProvider backend={HTML5Backend}>
 			<Calendar />
-		</div>
+		</DndProvider>
 	);
 };
 
