@@ -1,5 +1,7 @@
-import React from "react";
-import axios from "axios";
+// import React from "react";
+import React, { useContext } from "react";
+// import axios from "axios";
+import { AuthContext } from "../../AuthContext";
 import { EventBlock } from "./EventBlock";
 import { getEventPartForDay, SLOT_HEIGHT, TOTAL_SLOTS } from "./helpers";
 
@@ -9,6 +11,7 @@ export const DayWeekEventsColumn = ({
 	openEditModal,
 	fetchEvents,
 }) => {
+	const { authAxios } = useContext(AuthContext);
 	const dayStart = new Date(day);
 	dayStart.setHours(0, 0, 0, 0);
 	const dayEnd = new Date(day);
@@ -44,22 +47,22 @@ export const DayWeekEventsColumn = ({
 		<>
 			{dayEventBlocks.map((block) => (
 				<EventBlock
-					key={block.id}
+					key={block.id} // Уникальный key
 					block={block}
 					openEditModal={openEditModal}
 					onUpdateEvent={async (evId, newStartMs) => {
-						const duration = block.duration || 15;
-						const newEndMs = newStartMs + duration * 60000;
-
 						try {
-							await axios.put(`http://localhost:5000/api/events/${evId}`, {
+							await authAxios.put(`/events/${evId}`, {
 								title: block.title,
 								startDate: new Date(newStartMs).toISOString(),
-								endDate: new Date(newEndMs).toISOString(),
+								endDate: new Date(
+									newStartMs + (block.endMs - block.startMs)
+								).toISOString(),
 							});
 							fetchEvents();
 						} catch (err) {
-							console.error(err);
+							console.error("Error updating event:", err);
+							alert("Ошибка при обновлении события.");
 						}
 					}}
 				/>

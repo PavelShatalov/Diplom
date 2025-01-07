@@ -47,11 +47,49 @@ router.post("/", authMiddleware, async (req, res) => {
 	}
 });
 
+// // PUT /api/events/:id
+// router.put("/:id", authMiddleware, async (req, res) => {
+// 	try {
+// 		const { title, startDate, endDate } = req.body;
+// 		const eventId = req.params.id;
+
+// 		const existing = await Event.findOne({ _id: eventId, userId: req.userId });
+// 		if (!existing) {
+// 			return res.status(404).json({ message: "Event not found" });
+// 		}
+
+// 		const start = new Date(startDate);
+// 		const end = new Date(endDate);
+// 		if (end <= start) {
+// 			return res
+// 				.status(400)
+// 				.json({ message: "endDate must be after startDate" });
+// 		}
+
+// 		const duration = Math.round((end - start) / 60000);
+
+// 		existing.title = title;
+// 		existing.startDate = startDate;
+// 		existing.endDate = endDate;
+// 		existing.duration = duration;
+// 		await existing.save();
+
+// 		res.json(existing);
+// 	} catch (err) {
+// 		console.error("Update event error:", err);
+// 		res.status(500).json({ message: "Server error" });
+// 	}
+// });
+
 // PUT /api/events/:id
 router.put("/:id", authMiddleware, async (req, res) => {
 	try {
 		const { title, startDate, endDate } = req.body;
 		const eventId = req.params.id;
+
+		if (!mongoose.Types.ObjectId.isValid(eventId)) {
+			return res.status(400).json({ message: "Invalid event ID format" });
+		}
 
 		const existing = await Event.findOne({ _id: eventId, userId: req.userId });
 		if (!existing) {
@@ -81,16 +119,47 @@ router.put("/:id", authMiddleware, async (req, res) => {
 	}
 });
 
+// // DELETE /api/events/:id
+// router.delete("/:id", authMiddleware, async (req, res) => {
+// 	try {
+// 		const eventId = req.params.id;
+// 		const existing = await Event.findOne({ _id: eventId, userId: req.userId });
+// 		if (!existing) {
+// 			return res.status(404).json({ message: "Event not found" });
+// 		}
+// 		await existing.remove();
+// 		res.json({ message: "Event deleted" });
+// 	} catch (err) {
+// 		console.error("Delete event error:", err);
+// 		res.status(500).json({ message: "Server error" });
+// 	}
+// });
+
+// server/routes/events.js
+
 // DELETE /api/events/:id
 router.delete("/:id", authMiddleware, async (req, res) => {
 	try {
 		const eventId = req.params.id;
-		const existing = await Event.findOne({ _id: eventId, userId: req.userId });
-		if (!existing) {
-			return res.status(404).json({ message: "Event not found" });
+
+		// Проверка валидности ObjectId
+		if (!mongoose.Types.ObjectId.isValid(eventId)) {
+			return res.status(400).json({ message: "Invalid event ID format" });
 		}
-		await existing.remove();
-		res.json({ message: "Event deleted" });
+
+		// Удаление события
+		const deletedEvent = await Event.findOneAndDelete({
+			_id: eventId,
+			userId: req.userId,
+		});
+
+		if (!deletedEvent) {
+			return res
+				.status(404)
+				.json({ message: "Event not found or unauthorized" });
+		}
+
+		res.json({ message: "Event deleted", event: deletedEvent });
 	} catch (err) {
 		console.error("Delete event error:", err);
 		res.status(500).json({ message: "Server error" });

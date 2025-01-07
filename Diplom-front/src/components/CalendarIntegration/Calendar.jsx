@@ -42,7 +42,13 @@ const Calendar = () => {
 	const fetchEvents = async () => {
 		try {
 			const res = await authAxios.get("/events");
-			setEvents(res.data);
+			const eventsWithId = res.data.map((ev) => ({
+				...ev,
+				id: ev._id,
+				startDate: new Date(ev.startDate).toISOString(),
+				endDate: new Date(ev.endDate).toISOString(),
+			}));
+			setEvents(eventsWithId);
 		} catch (error) {
 			console.error("Error fetching events:", error);
 		}
@@ -111,6 +117,12 @@ const Calendar = () => {
 			startDate: ev.startDate.slice(0, 16),
 			endDate: ev.endDate.slice(0, 16),
 		});
+		console.log({
+			id: ev.id,
+			title: ev.title,
+			startDate: ev.startDate.slice(0, 16),
+			endDate: ev.endDate.slice(0, 16),
+		});
 		setIsEdit(true);
 		setShowModal(true);
 	};
@@ -166,6 +178,7 @@ const Calendar = () => {
 			closeModal();
 		} catch (error) {
 			console.error("Error deleting event:", error);
+			alert("Ошибка при удалении события.");
 		}
 	};
 

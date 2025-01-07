@@ -61,7 +61,7 @@ export function getEventPartForDay(event, dayStart, dayEnd) {
 
 	return {
 		...event,
-		startDate: overlapStart,
-		endDate: overlapEnd,
+		startDate: overlapStart.toISOString(), // Возвращаем строку
+		endDate: overlapEnd.toISOString(),
 	};
 }
