@@ -1,14 +1,30 @@
 import React from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import NavBar from "./components/NavBar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LoginPage from "./components/LoginPage";
+import RegisterPage from "./components/RegisterPage";
 import Calendar from "./components/CalendarIntegration/Calendar";
 
-const App = () => {
+function App() {
 	return (
-		<DndProvider backend={HTML5Backend}>
-			<Calendar />
-		</DndProvider>
+		<BrowserRouter>
+			<NavBar />
+			<Routes>
+				<Route path="/login" element={<LoginPage />} />
+				<Route path="/register" element={<RegisterPage />} />
+				{/* Защищенный маршрут на "/" */}
+				<Route
+					path="/"
+					element={
+						<ProtectedRoute>
+							<Calendar />
+						</ProtectedRoute>
+					}
+				/>
+			</Routes>
+		</BrowserRouter>
 	);
-};
+}
 
 export default App;
