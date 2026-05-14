@@ -53,8 +53,11 @@ export const EventBlock = ({ block, openEditModal, onUpdateEvent }) => {
 				openEditModal(block);
 			}}>
 			<div className="font-semibold truncate">{block.title}</div>
-			<div className="text-[0.6rem]">
-				{startTimeStr} - {endTimeStr}
+			<div className="flex items-center justify-between gap-1 text-[0.6rem]">
+				<span>
+					{startTimeStr} - {endTimeStr}
+				</span>
+				<span className="truncate opacity-90">{block.syncStatus || "local"}</span>
 			</div>
 		</div>
 	);

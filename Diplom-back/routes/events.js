@@ -1,7 +1,45 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const Event = require("../models/Event");
 const authMiddleware = require("../middleware/auth");
+
+const allowedSources = ["local", "intranet", "google", "outlook"];
+const allowedSyncStatuses = ["local", "pending", "synced", "failed"];
+
+function normalizeEventPayload(body) {
+	const start = new Date(body.startDate);
+	const end = new Date(body.endDate);
+	const title = typeof body.title === "string" ? body.title.trim() : "";
+
+	if (!title || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+		return { error: "Invalid event data" };
+	}
+
+	if (end <= start) {
+		return { error: "endDate must be strictly after startDate" };
+	}
+
+	const reminderMinutes = Number(body.reminderMinutes ?? 15);
+
+	return {
+		event: {
+			title,
+			startDate: start,
+			endDate: end,
+			duration: Math.round((end - start) / 60000),
+			source: allowedSources.includes(body.source) ? body.source : "local",
+			externalCalendarId: body.externalCalendarId || "",
+			externalEventId: body.externalEventId || "",
+			syncStatus: allowedSyncStatuses.includes(body.syncStatus)
+				? body.syncStatus
+				: "local",
+			reminderMinutes: Number.isFinite(reminderMinutes)
+				? Math.max(0, reminderMinutes)
+				: 15,
+		},
+	};
+}
 
 // GET /api/events
 router.get("/", authMiddleware, async (req, res) => {
@@ -14,29 +52,35 @@ router.get("/", authMiddleware, async (req, res) => {
 	}
 });
 
+// GET /api/events/upcoming?minutes=1440
+router.get("/upcoming", authMiddleware, async (req, res) => {
+	try {
+		const minutes = Math.max(1, Number(req.query.minutes) || 1440);
+		const now = new Date();
+		const limit = new Date(now.getTime() + minutes * 60000);
+
+		const events = await Event.find({
+			userId: req.userId,
+			startDate: { $gte: now, $lte: limit },
+		}).sort({ startDate: 1 });
+
+		res.json(events);
+	} catch (err) {
+		console.error("Get upcoming events error:", err);
+		res.status(500).json({ message: "Server error" });
+	}
+});
+
 // POST /api/events
 router.post("/", authMiddleware, async (req, res) => {
 	try {
-		const { title, startDate, endDate } = req.body;
-		if (!title || !startDate || !endDate) {
-			return res.status(400).json({ message: "Invalid event data" });
+		const { event, error } = normalizeEventPayload(req.body);
+		if (error) {
+			return res.status(400).json({ message: error });
 		}
-
-		const start = new Date(startDate);
-		const end = new Date(endDate);
-		if (end <= start) {
-			return res
-				.status(400)
-				.json({ message: "endDate must be strictly after startDate" });
-		}
-
-		const duration = Math.round((end - start) / 60000);
 
 		const newEvent = new Event({
-			title,
-			startDate,
-			endDate,
-			duration,
+			...event,
 			userId: req.userId,
 		});
 		await newEvent.save();
@@ -84,7 +128,6 @@ router.post("/", authMiddleware, async (req, res) => {
 // PUT /api/events/:id
 router.put("/:id", authMiddleware, async (req, res) => {
 	try {
-		const { title, startDate, endDate } = req.body;
 		const eventId = req.params.id;
 
 		if (!mongoose.Types.ObjectId.isValid(eventId)) {
@@ -96,20 +139,22 @@ router.put("/:id", authMiddleware, async (req, res) => {
 			return res.status(404).json({ message: "Event not found" });
 		}
 
-		const start = new Date(startDate);
-		const end = new Date(endDate);
-		if (end <= start) {
-			return res
-				.status(400)
-				.json({ message: "endDate must be after startDate" });
+		const { event, error } = normalizeEventPayload({
+			source: existing.source,
+			externalCalendarId: existing.externalCalendarId,
+			externalEventId: existing.externalEventId,
+			syncStatus: existing.syncStatus,
+			reminderMinutes: existing.reminderMinutes,
+			...req.body,
+		});
+		if (error) {
+			return res.status(400).json({ message: error });
 		}
 
-		const duration = Math.round((end - start) / 60000);
-
-		existing.title = title;
-		existing.startDate = startDate;
-		existing.endDate = endDate;
-		existing.duration = duration;
+		Object.assign(existing, event, {
+			syncStatus: existing.externalEventId ? "pending" : event.syncStatus,
+			syncError: "",
+		});
 		await existing.save();
 
 		res.json(existing);

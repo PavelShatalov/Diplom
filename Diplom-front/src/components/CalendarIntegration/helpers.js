@@ -16,6 +16,15 @@ export const HOURS_PER_DAY = 24;
 export const TOTAL_SLOTS = HOURS_PER_DAY * SLOTS_PER_HOUR; // 96
 export const DAY_HEIGHT = TOTAL_SLOTS * SLOT_HEIGHT; // 1536
 
+export function formatDateTimeLocal(value) {
+	const date = value instanceof Date ? value : new Date(value);
+	const pad = (number) => String(number).padStart(2, "0");
+
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+		date.getDate()
+	)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 // Генерация недельного диапазона
 export function generateWeek(startDate) {
 	const arr = [];
@@ -31,7 +40,6 @@ export function generateWeek(startDate) {
 export function generateMonthMatrix(year, month) {
 	const firstDay = new Date(year, month, 1);
 	const startDay = firstDay.getDay();
-	const daysInMonth = new Date(year, month + 1, 0).getDate();
 
 	const matrix = [];
 	let currentDate = new Date(year, month, 1 - startDay);

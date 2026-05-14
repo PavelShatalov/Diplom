@@ -5,8 +5,6 @@ export const CalendarHeader = ({
 	onViewChange,
 	onPrevious,
 	onNext,
-	currentMonthYear,
-	currentStartDate,
 }) => {
 	// Можно отформатировать название недели/дня/месяца
 	return (

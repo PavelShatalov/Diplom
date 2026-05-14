@@ -3,13 +3,15 @@ import axios from "axios";
 
 export const AuthContext = createContext(null);
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 export const AuthProvider = ({ children }) => {
 	// Храним токен в localStorage
 	const [token, setToken] = useState(localStorage.getItem("token") || "");
 
 	// Регистрация
 	const registerUser = async (email, password) => {
-		await axios.post("http://localhost:5000/api/auth/register", {
+		await axios.post(`${API_BASE_URL}/api/auth/register`, {
 			email,
 			password,
 		});
@@ -17,7 +19,7 @@ export const AuthProvider = ({ children }) => {
 
 	// Логин
 	const loginUser = async (email, password) => {
-		const res = await axios.post("http://localhost:5000/api/auth/login", {
+		const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
 			email,
 			password,
 		});
@@ -34,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
 	// Axios экземпляр с подстановкой токена
 	const authAxios = axios.create({
-		baseURL: "http://localhost:5000/api",
+		baseURL: `${API_BASE_URL}/api`,
 	});
 
 	authAxios.interceptors.request.use((config) => {

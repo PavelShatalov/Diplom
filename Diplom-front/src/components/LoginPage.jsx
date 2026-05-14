@@ -13,7 +13,7 @@ const LoginPage = () => {
 		try {
 			await loginUser(email, password);
 			navigate("/");
-		} catch (err) {
+		} catch (_err) {
 			alert("Login error");
 		}
 	};

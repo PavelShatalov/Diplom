@@ -5,7 +5,7 @@ import { DRAG_TYPE, SLOT_HEIGHT } from "./helpers";
 export const CalendarSlot = ({ slotIndex, day, onAddEvent }) => {
 	const [{ isOver }, dropRef] = useDrop({
 		accept: DRAG_TYPE,
-		drop: (item) => {
+		drop: () => {
 			return { day, slotIndex };
 		},
 		collect: (monitor) => ({

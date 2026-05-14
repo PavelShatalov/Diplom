@@ -14,7 +14,7 @@ const RegisterPage = () => {
 			await registerUser(email, password);
 			alert("Registered successfully! Please login now.");
 			navigate("/login");
-		} catch (err) {
+		} catch (_err) {
 			alert("Register error");
 		}
 	};

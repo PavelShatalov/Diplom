@@ -14,13 +14,11 @@ export const DayView = ({
 
 	return (
 		<div className="w-full">
-			{/* Заголовок: какой день */}
 			<div className="flex items-center justify-center mb-2">
 				<h2 className="text-lg font-semibold">{day.toDateString()}</h2>
 			</div>
 
 			<div className="flex">
-				{/* Левая колонка (часы) */}
 				<div
 					className="border-t border-l relative"
 					style={{ height: DAY_HEIGHT }}>

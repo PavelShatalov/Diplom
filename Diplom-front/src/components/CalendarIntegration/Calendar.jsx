@@ -1,10 +1,12 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../AuthContext";
 import { CalendarHeader } from "./CalendarHeader";
-import { generateWeek, generateMonthMatrix } from "./helpers";
 import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
+import { IntegrationPanel } from "./IntegrationPanel";
+import { ReminderCenter } from "./ReminderCenter";
+import { formatDateTimeLocal } from "./helpers";
 
 const Calendar = () => {
 	const { authAxios } = useContext(AuthContext);
@@ -33,13 +35,11 @@ const Calendar = () => {
 		title: "",
 		startDate: "",
 		endDate: "",
+		reminderMinutes: 15,
+		source: "local",
 	});
 
-	useEffect(() => {
-		fetchEvents();
-	}, [viewMode, currentStartDate, currentMonthYear]);
-
-	const fetchEvents = async () => {
+	const fetchEvents = useCallback(async () => {
 		try {
 			const res = await authAxios.get("/events");
 			const eventsWithId = res.data.map((ev) => ({
@@ -47,12 +47,19 @@ const Calendar = () => {
 				id: ev._id,
 				startDate: new Date(ev.startDate).toISOString(),
 				endDate: new Date(ev.endDate).toISOString(),
+				reminderMinutes: ev.reminderMinutes ?? 15,
+				source: ev.source || "local",
+				syncStatus: ev.syncStatus || "local",
 			}));
 			setEvents(eventsWithId);
 		} catch (error) {
 			console.error("Error fetching events:", error);
 		}
-	};
+	}, [authAxios]);
+
+	useEffect(() => {
+		fetchEvents();
+	}, [fetchEvents, viewMode, currentStartDate, currentMonthYear]);
 
 	const handleViewChange = (mode) => setViewMode(mode);
 
@@ -102,8 +109,10 @@ const Calendar = () => {
 		setCurrentEvent({
 			id: null,
 			title: "",
-			startDate: startDate.toISOString().slice(0, 16),
-			endDate: endDate.toISOString().slice(0, 16),
+			startDate: formatDateTimeLocal(startDate),
+			endDate: formatDateTimeLocal(endDate),
+			reminderMinutes: 15,
+			source: "local",
 		});
 		setIsEdit(false);
 		setShowModal(true);
@@ -114,14 +123,16 @@ const Calendar = () => {
 		setCurrentEvent({
 			id: ev.id,
 			title: ev.title,
-			startDate: ev.startDate.slice(0, 16),
-			endDate: ev.endDate.slice(0, 16),
+			startDate: formatDateTimeLocal(ev.startDate),
+			endDate: formatDateTimeLocal(ev.endDate),
+			reminderMinutes: ev.reminderMinutes ?? 15,
+			source: ev.source || "local",
 		});
 		console.log({
 			id: ev.id,
 			title: ev.title,
-			startDate: ev.startDate.slice(0, 16),
-			endDate: ev.endDate.slice(0, 16),
+			startDate: formatDateTimeLocal(ev.startDate),
+			endDate: formatDateTimeLocal(ev.endDate),
 		});
 		setIsEdit(true);
 		setShowModal(true);
@@ -130,7 +141,14 @@ const Calendar = () => {
 	const closeModal = () => {
 		setShowModal(false);
 		setIsEdit(false);
-		setCurrentEvent({ id: null, title: "", startDate: "", endDate: "" });
+		setCurrentEvent({
+			id: null,
+			title: "",
+			startDate: "",
+			endDate: "",
+			reminderMinutes: 15,
+			source: "local",
+		});
 	};
 
 	const saveEvent = async () => {
@@ -148,6 +166,8 @@ const Calendar = () => {
 					title: currentEvent.title,
 					startDate: currentEvent.startDate,
 					endDate: currentEvent.endDate,
+					reminderMinutes: currentEvent.reminderMinutes,
+					source: currentEvent.source,
 				});
 				fetchEvents();
 				closeModal();
@@ -161,6 +181,8 @@ const Calendar = () => {
 					title: currentEvent.title,
 					startDate: currentEvent.startDate,
 					endDate: currentEvent.endDate,
+					reminderMinutes: currentEvent.reminderMinutes,
+					source: currentEvent.source,
 				});
 				fetchEvents();
 				closeModal();
@@ -213,6 +235,9 @@ const Calendar = () => {
 
 	return (
 		<div className="p-4 max-w-6xl mx-auto w-full">
+			<IntegrationPanel />
+			<ReminderCenter events={events} />
+
 			<CalendarHeader
 				viewMode={viewMode}
 				onViewChange={handleViewChange}
@@ -265,6 +290,37 @@ const Calendar = () => {
 							}
 							className="p-2 border rounded w-full mb-2"
 						/>
+						<label className="text-sm text-gray-600">Reminder:</label>
+						<select
+							value={currentEvent.reminderMinutes}
+							onChange={(e) =>
+								setCurrentEvent({
+									...currentEvent,
+									reminderMinutes: Number(e.target.value),
+								})
+							}
+							className="p-2 border rounded w-full mb-2">
+							<option value={0}>At event time</option>
+							<option value={5}>5 minutes before</option>
+							<option value={15}>15 minutes before</option>
+							<option value={30}>30 minutes before</option>
+							<option value={60}>1 hour before</option>
+						</select>
+						<label className="text-sm text-gray-600">Source:</label>
+						<select
+							value={currentEvent.source}
+							onChange={(e) =>
+								setCurrentEvent({
+									...currentEvent,
+									source: e.target.value,
+								})
+							}
+							className="p-2 border rounded w-full mb-2">
+							<option value="local">Local</option>
+							<option value="intranet">Intranet</option>
+							<option value="google">Google Calendar</option>
+							<option value="outlook">Outlook</option>
+						</select>
 
 						<div className="flex justify-end mt-4">
 							<button
