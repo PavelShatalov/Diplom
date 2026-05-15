@@ -15,6 +15,7 @@ export const SLOTS_PER_HOUR = 4;
 export const HOURS_PER_DAY = 24;
 export const TOTAL_SLOTS = HOURS_PER_DAY * SLOTS_PER_HOUR; // 96
 export const DAY_HEIGHT = TOTAL_SLOTS * SLOT_HEIGHT; // 1536
+export const TIME_GUTTER_WIDTH = 72;
 
 export function formatDateTimeLocal(value) {
 	const date = value instanceof Date ? value : new Date(value);
@@ -24,6 +25,16 @@ export function formatDateTimeLocal(value) {
 		date.getDate()
 	)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+export const eventColors = [
+	"#2563eb",
+	"#0f766e",
+	"#9333ea",
+	"#dc2626",
+	"#ea580c",
+	"#4f46e5",
+	"#64748b",
+];
 
 // Генерация недельного диапазона
 export function generateWeek(startDate) {

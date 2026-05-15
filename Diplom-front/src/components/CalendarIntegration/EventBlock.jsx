@@ -25,6 +25,11 @@ export const EventBlock = ({ block, openEditModal, onUpdateEvent }) => {
 	});
 
 	const opacity = isDragging ? 0.5 : 1;
+	const gapPx = 4;
+	const columns = block.overlapColumns || 1;
+	const column = block.overlapColumn || 0;
+	const width = `calc(${100 / columns}% - ${gapPx + gapPx / columns}px)`;
+	const left = `calc(${(100 / columns) * column}% + ${gapPx}px)`;
 
 	const startTimeStr = new Date(block.startDate).toLocaleTimeString([], {
 		hour: "2-digit",
@@ -40,20 +45,21 @@ export const EventBlock = ({ block, openEditModal, onUpdateEvent }) => {
 	return (
 		<div
 			ref={dragRef}
-			className="absolute bg-blue-500 text-white text-xs rounded px-1 py-1 cursor-pointer shadow-md"
+			className="absolute text-white text-xs rounded-md px-2 py-1 cursor-pointer shadow-sm ring-1 ring-white/30 overflow-hidden"
 			style={{
 				top: block.topPx,
-				left: "5%",
-				width: "90%",
-				height: block.heightPx,
+				left,
+				width,
+				height: Math.max(block.heightPx - 2, 18),
 				opacity,
+				backgroundColor: block.color || "#2563eb",
 			}}
 			onClick={(e) => {
 				e.stopPropagation();
 				openEditModal(block);
 			}}>
-			<div className="font-semibold truncate">{block.title}</div>
-			<div className="flex items-center justify-between gap-1 text-[0.6rem]">
+			<div className="font-semibold truncate leading-tight">{block.title}</div>
+			<div className="flex items-center justify-between gap-1 text-[0.62rem] leading-tight text-white/90">
 				<span>
 					{startTimeStr} - {endTimeStr}
 				</span>

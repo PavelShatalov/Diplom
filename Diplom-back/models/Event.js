@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema({
 	title: { type: String, required: true },
+	color: { type: String, default: "#2563eb" },
 	startDate: { type: Date, required: true },
 	endDate: { type: Date, required: true },
 	duration: { type: Number, required: true },

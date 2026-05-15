@@ -14,7 +14,7 @@ export const CalendarSlot = ({ slotIndex, day, onAddEvent }) => {
 	});
 
 	const topPx = slotIndex * SLOT_HEIGHT;
-	const background = isOver ? "rgba(0, 150, 255, 0.2)" : "transparent";
+	const background = isOver ? "rgba(37, 99, 235, 0.12)" : "transparent";
 
 	const handleClick = (e) => {
 		e.stopPropagation();
@@ -27,7 +27,9 @@ export const CalendarSlot = ({ slotIndex, day, onAddEvent }) => {
 	return (
 		<div
 			ref={dropRef}
-			className="absolute left-0 right-0 border-b border-gray-300 cursor-pointer"
+			className={`absolute left-0 right-0 cursor-pointer hover:bg-blue-50/50 ${
+				slotIndex % 4 === 3 ? "border-b border-slate-200" : "border-b border-slate-100"
+			}`}
 			style={{
 				top: topPx,
 				height: SLOT_HEIGHT,

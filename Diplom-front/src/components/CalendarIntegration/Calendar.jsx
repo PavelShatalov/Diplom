@@ -5,8 +5,7 @@ import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { IntegrationPanel } from "./IntegrationPanel";
-import { ReminderCenter } from "./ReminderCenter";
-import { formatDateTimeLocal } from "./helpers";
+import { eventColors, formatDateTimeLocal } from "./helpers";
 
 const Calendar = () => {
 	const { authAxios } = useContext(AuthContext);
@@ -37,6 +36,7 @@ const Calendar = () => {
 		endDate: "",
 		reminderMinutes: 15,
 		source: "local",
+		color: eventColors[0],
 	});
 
 	const fetchEvents = useCallback(async () => {
@@ -50,6 +50,7 @@ const Calendar = () => {
 				reminderMinutes: ev.reminderMinutes ?? 15,
 				source: ev.source || "local",
 				syncStatus: ev.syncStatus || "local",
+				color: ev.color || eventColors[0],
 			}));
 			setEvents(eventsWithId);
 		} catch (error) {
@@ -103,6 +104,21 @@ const Calendar = () => {
 		}
 	};
 
+	const goToday = () => {
+		const now = new Date();
+		const today = new Date(now);
+		today.setHours(0, 0, 0, 0);
+
+		if (viewMode === "month") {
+			setCurrentMonthYear({
+				year: now.getFullYear(),
+				month: now.getMonth(),
+			});
+		} else {
+			setCurrentStartDate(today);
+		}
+	};
+
 	// Open add
 	const openAddModal = (startDate) => {
 		const endDate = new Date(startDate.getTime() + 15 * 60000);
@@ -113,6 +129,7 @@ const Calendar = () => {
 			endDate: formatDateTimeLocal(endDate),
 			reminderMinutes: 15,
 			source: "local",
+			color: eventColors[0],
 		});
 		setIsEdit(false);
 		setShowModal(true);
@@ -127,6 +144,7 @@ const Calendar = () => {
 			endDate: formatDateTimeLocal(ev.endDate),
 			reminderMinutes: ev.reminderMinutes ?? 15,
 			source: ev.source || "local",
+			color: ev.color || eventColors[0],
 		});
 		console.log({
 			id: ev.id,
@@ -148,6 +166,7 @@ const Calendar = () => {
 			endDate: "",
 			reminderMinutes: 15,
 			source: "local",
+			color: eventColors[0],
 		});
 	};
 
@@ -168,6 +187,7 @@ const Calendar = () => {
 					endDate: currentEvent.endDate,
 					reminderMinutes: currentEvent.reminderMinutes,
 					source: currentEvent.source,
+					color: currentEvent.color,
 				});
 				fetchEvents();
 				closeModal();
@@ -183,7 +203,23 @@ const Calendar = () => {
 					endDate: currentEvent.endDate,
 					reminderMinutes: currentEvent.reminderMinutes,
 					source: currentEvent.source,
+					color: currentEvent.color,
 				});
+				setEvents((previousEvents) =>
+					previousEvents.map((event) =>
+						event.id === currentEvent.id
+							? {
+									...event,
+									title: currentEvent.title,
+									startDate: new Date(currentEvent.startDate).toISOString(),
+									endDate: new Date(currentEvent.endDate).toISOString(),
+									reminderMinutes: currentEvent.reminderMinutes,
+									source: currentEvent.source,
+									color: currentEvent.color,
+							  }
+							: event
+					)
+				);
 				fetchEvents();
 				closeModal();
 			} catch (error) {
@@ -236,12 +272,12 @@ const Calendar = () => {
 	return (
 		<div className="p-4 max-w-6xl mx-auto w-full">
 			<IntegrationPanel />
-			<ReminderCenter events={events} />
 
 			<CalendarHeader
 				viewMode={viewMode}
 				onViewChange={handleViewChange}
 				onPrevious={goPrevious}
+				onToday={goToday}
 				onNext={goNext}
 				currentMonthYear={currentMonthYear}
 				currentStartDate={currentStartDate}
@@ -252,9 +288,9 @@ const Calendar = () => {
 			{viewMode === "month" && renderMonth()}
 
 			{showModal && (
-				<div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-					<div className="bg-white p-6 rounded shadow-md relative w-full max-w-md">
-						<h2 className="text-xl font-semibold mb-4">
+				<div className="fixed inset-0 flex items-center justify-center bg-slate-900 bg-opacity-45 z-50 px-4">
+					<div className="bg-white p-6 rounded-lg shadow-xl relative w-full max-w-md border border-slate-200">
+						<h2 className="text-lg font-semibold mb-4 text-slate-950">
 							{isEdit ? "Edit Event" : "Add Event"}
 						</h2>
 						<button
@@ -270,27 +306,27 @@ const Calendar = () => {
 								setCurrentEvent({ ...currentEvent, title: e.target.value })
 							}
 							placeholder="Event Title"
-							className="p-2 border rounded w-full mb-2"
+							className="p-2 border border-slate-300 rounded w-full mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
-						<label className="text-sm text-gray-600">Start (24h):</label>
+						<label className="text-sm font-medium text-slate-600">Start</label>
 						<input
 							type="datetime-local"
 							value={currentEvent.startDate}
 							onChange={(e) =>
 								setCurrentEvent({ ...currentEvent, startDate: e.target.value })
 							}
-							className="p-2 border rounded w-full mb-2"
+							className="p-2 border border-slate-300 rounded w-full mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
-						<label className="text-sm text-gray-600">End (24h):</label>
+						<label className="text-sm font-medium text-slate-600">End</label>
 						<input
 							type="datetime-local"
 							value={currentEvent.endDate}
 							onChange={(e) =>
 								setCurrentEvent({ ...currentEvent, endDate: e.target.value })
 							}
-							className="p-2 border rounded w-full mb-2"
+							className="p-2 border border-slate-300 rounded w-full mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
-						<label className="text-sm text-gray-600">Reminder:</label>
+						<label className="text-sm font-medium text-slate-600">Reminder</label>
 						<select
 							value={currentEvent.reminderMinutes}
 							onChange={(e) =>
@@ -299,14 +335,14 @@ const Calendar = () => {
 									reminderMinutes: Number(e.target.value),
 								})
 							}
-							className="p-2 border rounded w-full mb-2">
+							className="p-2 border border-slate-300 rounded w-full mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
 							<option value={0}>At event time</option>
 							<option value={5}>5 minutes before</option>
 							<option value={15}>15 minutes before</option>
 							<option value={30}>30 minutes before</option>
 							<option value={60}>1 hour before</option>
 						</select>
-						<label className="text-sm text-gray-600">Source:</label>
+						<label className="text-sm font-medium text-slate-600">Source</label>
 						<select
 							value={currentEvent.source}
 							onChange={(e) =>
@@ -315,29 +351,46 @@ const Calendar = () => {
 									source: e.target.value,
 								})
 							}
-							className="p-2 border rounded w-full mb-2">
+							className="p-2 border border-slate-300 rounded w-full mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
 							<option value="local">Local</option>
 							<option value="intranet">Intranet</option>
 							<option value="google">Google Calendar</option>
 							<option value="outlook">Outlook</option>
 						</select>
+						<label className="text-sm font-medium text-slate-600">Color</label>
+						<div className="mt-2 mb-4 flex gap-2">
+							{eventColors.map((color) => (
+								<button
+									key={color}
+									type="button"
+									aria-label={`Choose color ${color}`}
+									onClick={() => setCurrentEvent({ ...currentEvent, color })}
+									className={`h-7 w-7 rounded-full border-2 ${
+										currentEvent.color === color
+											? "border-slate-950"
+											: "border-white"
+									} shadow-sm ring-1 ring-slate-200`}
+									style={{ backgroundColor: color }}
+								/>
+							))}
+						</div>
 
 						<div className="flex justify-end mt-4">
 							<button
 								onClick={saveEvent}
-								className="px-4 py-2 bg-blue-500 text-white rounded">
+								className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium">
 								{isEdit ? "Update" : "Create"}
 							</button>
 							{isEdit && (
 								<button
 									onClick={deleteEvent}
-									className="ml-2 px-4 py-2 bg-red-500 text-white rounded">
+									className="ml-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium">
 									Delete
 								</button>
 							)}
 							<button
 								onClick={closeModal}
-								className="ml-2 px-4 py-2 bg-gray-300 text-black rounded">
+								className="ml-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 rounded text-sm font-medium">
 								Cancel
 							</button>
 						</div>

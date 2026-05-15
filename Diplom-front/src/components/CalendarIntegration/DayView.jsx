@@ -1,7 +1,12 @@
 import React from "react";
 import { CalendarSlot } from "./CalendarSlot";
 import { DayWeekEventsColumn } from "./DayWeekEventsColumn";
-import { SLOT_HEIGHT, TOTAL_SLOTS, DAY_HEIGHT } from "./helpers";
+import {
+	SLOT_HEIGHT,
+	TOTAL_SLOTS,
+	DAY_HEIGHT,
+	TIME_GUTTER_WIDTH,
+} from "./helpers";
 
 export const DayView = ({
 	currentStartDate,
@@ -13,40 +18,30 @@ export const DayView = ({
 	const day = currentStartDate;
 
 	return (
-		<div className="w-full">
-			<div className="flex items-center justify-center mb-2">
-				<h2 className="text-lg font-semibold">{day.toDateString()}</h2>
+		<div className="w-full rounded-lg bg-white shadow-sm border border-slate-200 overflow-hidden">
+			<div className="flex items-center justify-center border-b border-slate-200 bg-white">
+				<h2 className="text-lg font-semibold text-slate-900 py-3">
+					{day.toDateString()}
+				</h2>
 			</div>
 
 			<div className="flex">
 				<div
-					className="border-t border-l relative"
-					style={{ height: DAY_HEIGHT }}>
-					{Array.from({ length: TOTAL_SLOTS }).map((_, slotIndex) => {
-						const topPx = slotIndex * SLOT_HEIGHT;
-						const isHourStart = slotIndex % 4 === 0;
-						const hour = Math.floor(slotIndex / 4);
-						const minute = (slotIndex % 4) * 15;
-						const label = `${String(hour).padStart(2, "0")}:${String(
-							minute
-						).padStart(2, "0")}`;
+					className="relative shrink-0 bg-slate-50 border-r border-slate-200"
+					style={{ height: DAY_HEIGHT, width: TIME_GUTTER_WIDTH }}>
+					{Array.from({ length: 24 }).map((_, hour) => {
+						const topPx = hour * SLOT_HEIGHT * 4;
+						const label = `${String(hour).padStart(2, "0")}:00`;
 
 						return (
 							<div
-								key={slotIndex}
-								className="absolute left-0 right-0 border-b border-gray-300"
+								key={hour}
+								className="absolute right-3 text-[0.7rem] font-medium text-slate-500"
 								style={{
-									top: `${topPx}px`,
-									height: SLOT_HEIGHT,
-									backgroundColor: isHourStart ? "#f0f0f0" : "transparent",
+									top: hour === 0 ? "10px" : `${topPx}px`,
+									transform: hour === 0 ? "none" : "translateY(-50%)",
 								}}>
-								{isHourStart && (
-									<div
-										className="absolute left-0 text-xs text-gray-700"
-										style={{ transform: "translateX(-100%)" }}>
-										{label}
-									</div>
-								)}
+								{label}
 							</div>
 						);
 					})}
@@ -54,7 +49,7 @@ export const DayView = ({
 
 				{/* Правая колонка (слоты + события) */}
 				<div
-					className="border-t border-l relative"
+					className="relative"
 					style={{ height: DAY_HEIGHT, flex: 1 }}>
 					{Array.from({ length: TOTAL_SLOTS }).map((_, slotIndex) => (
 						<CalendarSlot

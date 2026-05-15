@@ -8,6 +8,7 @@ const authMiddleware = require("../middleware/auth");
 const JWT_SECRET = process.env.JWT_SECRET || "SECRET_JWT_KEY";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const TIME_ZONE = process.env.CALENDAR_TIME_ZONE || "Europe/Prague";
+const OUTLOOK_TIME_ZONE_HEADER = `outlook.timezone="${TIME_ZONE}"`;
 
 const providers = {
 	google: {
@@ -127,12 +128,65 @@ async function ensureAccessToken(user, provider) {
 	return integration.accessToken;
 }
 
-function toLocalDateTime(date) {
-	const value = new Date(date);
-	const pad = (number) => String(number).padStart(2, "0");
-	return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(
-		value.getDate()
-	)}T${pad(value.getHours())}:${pad(value.getMinutes())}:00`;
+function getTimeZoneParts(date, timeZone) {
+	const formatter = new Intl.DateTimeFormat("en-CA", {
+		timeZone,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hourCycle: "h23",
+	});
+
+	return Object.fromEntries(
+		formatter
+			.formatToParts(date)
+			.filter((part) => part.type !== "literal")
+			.map((part) => [part.type, part.value])
+	);
+}
+
+function toZonedDateTime(date, timeZone = TIME_ZONE) {
+	const parts = getTimeZoneParts(new Date(date), timeZone);
+
+	return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
+function getTimeZoneOffsetMs(date, timeZone) {
+	const parts = getTimeZoneParts(date, timeZone);
+	const zonedAsUtc = Date.UTC(
+		Number(parts.year),
+		Number(parts.month) - 1,
+		Number(parts.day),
+		Number(parts.hour),
+		Number(parts.minute),
+		Number(parts.second)
+	);
+
+	return zonedAsUtc - date.getTime();
+}
+
+function parseZonedDateTime(value, timeZone = TIME_ZONE) {
+	if (!value) return new Date(Number.NaN);
+	if (/[zZ]|[+-]\d{2}:\d{2}$/.test(value)) {
+		return new Date(value);
+	}
+
+	const [datePart, timePart = "00:00:00"] = value.split("T");
+	const [year, month, day] = datePart.split("-").map(Number);
+	const [hour = 0, minute = 0, second = 0] = timePart
+		.split(":")
+		.map((part) => Number.parseInt(part, 10));
+	const utcGuess = new Date(
+		Date.UTC(year, month - 1, day, hour, minute, second)
+	);
+	const firstOffset = getTimeZoneOffsetMs(utcGuess, timeZone);
+	const adjusted = new Date(utcGuess.getTime() - firstOffset);
+	const secondOffset = getTimeZoneOffsetMs(adjusted, timeZone);
+
+	return new Date(utcGuess.getTime() - secondOffset);
 }
 
 function eventToProviderPayload(event, provider) {
@@ -151,11 +205,11 @@ function eventToProviderPayload(event, provider) {
 	return {
 		subject: event.title,
 		start: {
-			dateTime: toLocalDateTime(event.startDate),
+			dateTime: toZonedDateTime(event.startDate),
 			timeZone: TIME_ZONE,
 		},
 		end: {
-			dateTime: toLocalDateTime(event.endDate),
+			dateTime: toZonedDateTime(event.endDate),
 			timeZone: TIME_ZONE,
 		},
 		isReminderOn: true,
@@ -182,6 +236,7 @@ async function upsertProviderEvent(event, provider, accessToken) {
 		headers: {
 			Authorization: `Bearer ${accessToken}`,
 			"Content-Type": "application/json",
+			...(provider === "outlook" ? { Prefer: OUTLOOK_TIME_ZONE_HEADER } : {}),
 		},
 		body: JSON.stringify(payload),
 	});
@@ -208,7 +263,10 @@ async function listProviderEvents(provider, accessToken) {
 			  )}&endDateTime=${encodeURIComponent(timeMax)}`;
 
 	const response = await fetch(url, {
-		headers: { Authorization: `Bearer ${accessToken}` },
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+			...(provider === "outlook" ? { Prefer: OUTLOOK_TIME_ZONE_HEADER } : {}),
+		},
 	});
 	const data = await response.json();
 
@@ -237,8 +295,14 @@ function normalizeRemoteEvent(remoteEvent, provider) {
 	return {
 		externalEventId: remoteEvent.id,
 		title: remoteEvent.subject || "Untitled event",
-		startDate: new Date(remoteEvent.start?.dateTime),
-		endDate: new Date(remoteEvent.end?.dateTime),
+		startDate: parseZonedDateTime(
+			remoteEvent.start?.dateTime,
+			remoteEvent.start?.timeZone || TIME_ZONE
+		),
+		endDate: parseZonedDateTime(
+			remoteEvent.end?.dateTime,
+			remoteEvent.end?.timeZone || TIME_ZONE
+		),
 	};
 }
 
@@ -271,6 +335,7 @@ async function importProviderEvents(user, provider, accessToken) {
 			{
 				$set: {
 					title: normalized.title,
+					color: provider === "outlook" ? "#0f766e" : "#dc2626",
 					startDate: normalized.startDate,
 					endDate: normalized.endDate,
 					duration,

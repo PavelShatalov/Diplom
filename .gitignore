@@ -1,0 +1,9 @@
+.env
+.env.local
+.env.*.local
+
+Diplom-back/.env
+Diplom-front/.env
+
+node_modules/
+dist/

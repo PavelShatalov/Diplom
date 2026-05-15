@@ -6,6 +6,11 @@ const authMiddleware = require("../middleware/auth");
 
 const allowedSources = ["local", "intranet", "google", "outlook"];
 const allowedSyncStatuses = ["local", "pending", "synced", "failed"];
+const defaultEventColor = "#2563eb";
+
+function normalizeColor(color) {
+	return /^#[0-9a-fA-F]{6}$/.test(color || "") ? color : null;
+}
 
 function normalizeEventPayload(body) {
 	const start = new Date(body.startDate);
@@ -21,10 +26,12 @@ function normalizeEventPayload(body) {
 	}
 
 	const reminderMinutes = Number(body.reminderMinutes ?? 15);
+	const color = normalizeColor(body.color) || body.fallbackColor || defaultEventColor;
 
 	return {
 		event: {
 			title,
+			color,
 			startDate: start,
 			endDate: end,
 			duration: Math.round((end - start) / 60000),
@@ -145,6 +152,8 @@ router.put("/:id", authMiddleware, async (req, res) => {
 			externalEventId: existing.externalEventId,
 			syncStatus: existing.syncStatus,
 			reminderMinutes: existing.reminderMinutes,
+			color: existing.color,
+			fallbackColor: existing.color,
 			...req.body,
 		});
 		if (error) {

@@ -15,22 +15,22 @@ export const MonthView = ({
 	});
 
 	return (
-		<div>
-			<h2 className="text-xl font-semibold mb-2">
+		<div className="rounded-lg bg-white shadow-sm border border-slate-200 overflow-hidden">
+			<h2 className="text-lg font-semibold px-4 py-3 text-slate-900">
 				{monthName} {year}
 			</h2>
 
-			<div className="grid grid-cols-7 border-t border-l">
+			<div className="grid grid-cols-7 border-t border-slate-200 bg-slate-50">
 				{daysOfWeekShort.map((dow) => (
 					<div
 						key={dow}
-						className="bg-gray-100 border-r border-b p-2 text-center font-bold">
+						className="border-r border-slate-200 p-2 text-center text-xs font-semibold text-slate-700">
 						{dow}
 					</div>
 				))}
 			</div>
 
-			<div className="grid grid-cols-7 border-l border-t">
+			<div className="grid grid-cols-7 border-t border-slate-200">
 				{matrix.map((row, rowIdx) =>
 					row.map((cellDate, colIdx) => {
 						const cellDay = cellDate.getDate();
@@ -67,8 +67,8 @@ export const MonthView = ({
 						return (
 							<div
 								key={`${rowIdx}-${colIdx}`}
-								className={`border-b border-r p-1 h-24 text-xs relative ${
-									isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-400"
+								className={`border-b border-r border-slate-200 p-2 h-28 text-xs relative ${
+									isCurrentMonth ? "bg-white" : "bg-slate-50 text-slate-400"
 								}`}
 								onClick={(e) => {
 									e.stopPropagation();
@@ -81,12 +81,13 @@ export const MonthView = ({
 									);
 									openAddModal(newStart);
 								}}>
-								<div className="font-semibold">{cellDay}</div>
+								<div className="font-semibold text-slate-700">{cellDay}</div>
 								<div className="mt-1 space-y-1">
 									{cellEvents.map((ev) => (
 										<div
 											key={ev.id}
-											className="bg-blue-500 text-white rounded px-1 truncate cursor-pointer"
+											className="text-white rounded px-2 py-0.5 truncate cursor-pointer shadow-sm"
+											style={{ backgroundColor: ev.color || "#2563eb" }}
 											onClick={(e) => {
 												e.stopPropagation();
 												openEditModal(ev);
