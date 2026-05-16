@@ -253,30 +253,68 @@ async function listProviderEvents(provider, accessToken) {
 	const timeMin = new Date(Date.now() - 30 * 24 * 60 * 60000).toISOString();
 	const timeMax = new Date(Date.now() + 180 * 24 * 60 * 60000).toISOString();
 
-	const url =
-		provider === "google"
-			? `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=${encodeURIComponent(
-					timeMin
-			  )}&timeMax=${encodeURIComponent(timeMax)}`
-			: `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${encodeURIComponent(
-					timeMin
-			  )}&endDateTime=${encodeURIComponent(timeMax)}`;
+	if (provider === "google") {
+		const events = [];
+		let pageToken = "";
 
-	const response = await fetch(url, {
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-			...(provider === "outlook" ? { Prefer: OUTLOOK_TIME_ZONE_HEADER } : {}),
-		},
-	});
-	const data = await response.json();
+		do {
+			const params = new URLSearchParams({
+				singleEvents: "true",
+				orderBy: "startTime",
+				timeMin,
+				timeMax,
+				maxResults: "2500",
+			});
+			if (pageToken) {
+				params.set("pageToken", pageToken);
+			}
 
-	if (!response.ok) {
-		throw new Error(
-			data.error?.message || data.error_description || "Calendar import failed"
-		);
+			const response = await fetch(
+				`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`,
+				{ headers: { Authorization: `Bearer ${accessToken}` } }
+			);
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(
+					data.error?.message ||
+						data.error_description ||
+						"Calendar import failed"
+				);
+			}
+
+			events.push(...(data.items || []));
+			pageToken = data.nextPageToken || "";
+		} while (pageToken);
+
+		return events;
 	}
 
-	return provider === "google" ? data.items || [] : data.value || [];
+	const events = [];
+	let nextUrl = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${encodeURIComponent(
+		timeMin
+	)}&endDateTime=${encodeURIComponent(timeMax)}&$top=100`;
+
+	while (nextUrl) {
+		const response = await fetch(nextUrl, {
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Prefer: OUTLOOK_TIME_ZONE_HEADER,
+			},
+		});
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(
+				data.error?.message || data.error_description || "Calendar import failed"
+			);
+		}
+
+		events.push(...(data.value || []));
+		nextUrl = data["@odata.nextLink"] || "";
+	}
+
+	return events;
 }
 
 function normalizeRemoteEvent(remoteEvent, provider) {

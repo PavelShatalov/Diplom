@@ -28,7 +28,7 @@ export const WeekView = ({
 				Time
 			</div>
 			{weekDays.map((day, index) => {
-				const weekday = daysOfWeekShort[day.getDay()];
+				const weekday = daysOfWeekShort[(day.getDay() + 6) % 7];
 				const dateNum = day.getDate();
 				return (
 					<div

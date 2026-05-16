@@ -5,7 +5,7 @@ import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { IntegrationPanel } from "./IntegrationPanel";
-import { eventColors, formatDateTimeLocal } from "./helpers";
+import { eventColors, formatDateTimeLocal, startOfWeekMonday } from "./helpers";
 
 const Calendar = () => {
 	const { authAxios } = useContext(AuthContext);
@@ -17,7 +17,7 @@ const Calendar = () => {
 	const [currentStartDate, setCurrentStartDate] = useState(() => {
 		const d = new Date();
 		d.setHours(0, 0, 0, 0);
-		return d;
+		return startOfWeekMonday(d);
 	});
 
 	// Для month
@@ -62,7 +62,12 @@ const Calendar = () => {
 		fetchEvents();
 	}, [fetchEvents, viewMode, currentStartDate, currentMonthYear]);
 
-	const handleViewChange = (mode) => setViewMode(mode);
+	const handleViewChange = (mode) => {
+		if (mode === "week") {
+			setCurrentStartDate((date) => startOfWeekMonday(date));
+		}
+		setViewMode(mode);
+	};
 
 	const goPrevious = () => {
 		if (viewMode === "day") {
@@ -70,7 +75,7 @@ const Calendar = () => {
 			d.setDate(d.getDate() - 1);
 			setCurrentStartDate(d);
 		} else if (viewMode === "week") {
-			const d = new Date(currentStartDate);
+			const d = startOfWeekMonday(currentStartDate);
 			d.setDate(d.getDate() - 7);
 			setCurrentStartDate(d);
 		} else if (viewMode === "month") {
@@ -90,7 +95,7 @@ const Calendar = () => {
 			d.setDate(d.getDate() + 1);
 			setCurrentStartDate(d);
 		} else if (viewMode === "week") {
-			const d = new Date(currentStartDate);
+			const d = startOfWeekMonday(currentStartDate);
 			d.setDate(d.getDate() + 7);
 			setCurrentStartDate(d);
 		} else if (viewMode === "month") {
@@ -114,6 +119,8 @@ const Calendar = () => {
 				year: now.getFullYear(),
 				month: now.getMonth(),
 			});
+		} else if (viewMode === "week") {
+			setCurrentStartDate(startOfWeekMonday(today));
 		} else {
 			setCurrentStartDate(today);
 		}

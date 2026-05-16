@@ -1,11 +1,11 @@
 export const daysOfWeekShort = [
-	"Sun",
 	"Mon",
 	"Tue",
 	"Wed",
 	"Thu",
 	"Fri",
 	"Sat",
+	"Sun",
 ];
 
 export const DRAG_TYPE = "CALENDAR_EVENT";
@@ -37,9 +37,18 @@ export const eventColors = [
 ];
 
 // Генерация недельного диапазона
+export function startOfWeekMonday(value) {
+	const date = new Date(value);
+	const day = date.getDay();
+	const diff = day === 0 ? -6 : 1 - day;
+	date.setDate(date.getDate() + diff);
+	date.setHours(0, 0, 0, 0);
+	return date;
+}
+
 export function generateWeek(startDate) {
 	const arr = [];
-	const current = new Date(startDate);
+	const current = startOfWeekMonday(startDate);
 	for (let i = 0; i < 7; i++) {
 		arr.push(new Date(current));
 		current.setDate(current.getDate() + 1);
@@ -50,7 +59,7 @@ export function generateWeek(startDate) {
 // Генерация матрицы (6x7) для месячного вида
 export function generateMonthMatrix(year, month) {
 	const firstDay = new Date(year, month, 1);
-	const startDay = firstDay.getDay();
+	const startDay = (firstDay.getDay() + 6) % 7;
 
 	const matrix = [];
 	let currentDate = new Date(year, month, 1 - startDay);
